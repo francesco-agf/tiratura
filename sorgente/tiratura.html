@@ -2019,7 +2019,22 @@
       }, o.headers || {}),
       body: o.body ? JSON.stringify(o.body) : undefined
     });
-    if (!res.ok) throw new Error("HTTP " + res.status);
+    if (!res.ok){
+      /* Il motivo del rifiuto va tirato fuori e mostrato: un vincolo del
+         database che rifiuta un inserimento risponde 400 con una spiegazione,
+         e ingoiarla vuol dire non accorgersi per giorni che la classifica non
+         registra. */
+      let motivo = "";
+      try {
+        const t = await res.text();
+        try { const j = JSON.parse(t); motivo = j.message || j.details || j.hint || t; }
+        catch(e2){ motivo = t; }
+      } catch(e){}
+      const err = new Error("HTTP " + res.status + (motivo ? " · " + motivo : ""));
+      err.stato = res.status;
+      err.motivo = (motivo || "").slice(0, 90);
+      throw err;
+    }
     const txt = await res.text();
     return txt ? JSON.parse(txt) : null;
   }
@@ -2161,7 +2176,9 @@
       changeName.hidden = false;
     } catch(e){
       signupMsg.className = "signup-msg ko";
-      signupMsg.textContent = "Non sono riuscito a inviare. Riprova.";
+      signupMsg.textContent = e && e.motivo
+        ? "Non inviato: " + e.motivo
+        : "Non sono riuscito a inviare. Riprova.";
       signupEdit.hidden = false;
       playerName.value = nome;
     }
