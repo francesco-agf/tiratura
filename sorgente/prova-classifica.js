@@ -50,22 +50,29 @@ const ok = (nome, cond, extra) => {
     [...document.querySelectorAll('#boardList li')].map(li => li.querySelector('.board-name').firstChild.textContent));
   ok('1. classifica caricata', t1.length === 2 && t1[0] === 'Proto' && t1[1] === 'Anna', t1);
 
-  // 2. senza nome non si comincia
+  /* 2. Senza nome si gioca lo stesso — è il cambiamento del 30.08.2026: il
+        nome si firma alla fine, sulla scheda del punteggio, non all'ingresso.
+        Prima questa prova pretendeva il contrario. */
   const t2 = await page.evaluate(async () => {
     localStorage.removeItem('agf.giocatore');
     localStorage.removeItem('baseline.nome');
     document.getElementById('nameInput').value = '';
     document.getElementById('startBtn').click();
-    await new Promise(r => setTimeout(r, 200));
-    return { fase: window.__tiratura.stato().fase,
-             nota: document.getElementById('nameNote').textContent };
+    await new Promise(r => setTimeout(r, 250));
+    const fase = window.__tiratura.stato().fase;
+    window.__tiratura.fine();
+    await new Promise(r => setTimeout(r, 800));
+    const e = document.getElementById('signupEdit');
+    return { fase: fase, chiede: !!e && !e.hidden,
+             msg: document.getElementById('signupMsg').textContent };
   });
-  ok('2. senza nome non si parte', t2.fase !== 'play' && /Scrivi un nome/.test(t2.nota), t2);
+  ok('2. senza nome si gioca lo stesso', t2.fase === 'play', { fase: t2.fase });
+  ok('2b. e alla fine chiede la firma', t2.chiede && /[Ff]irma/.test(t2.msg), t2);
 
   // 3. col nome si gioca e a fine partita il punteggio parte da solo
   const t3 = await page.evaluate(async () => {
     const T = window.__tiratura;
-    document.getElementById('nameInput').value = 'Francesco';
+    localStorage.setItem('agf.giocatore', 'Francesco');
     document.getElementById('startBtn').click();
     await new Promise(r => setTimeout(r, 200));
     const partito = T.stato().fase;
