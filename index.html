@@ -12,8 +12,23 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://francesco-agf.github.io/tiratura/">
 <meta property="og:title" content="Tiratura — la corsa del ragazzo di bottega">
-<meta property="og:description" content="Il garzone attraversa di corsa la tipografia con le bozze sotto il braccio: bancali, colate d'inchiostro, taglierine, e una pioggia di volantini. Un arcade di Arti Grafiche Fimognari.">
+<meta name="description" content="Il garzone attraversa di corsa la tipografia con le bozze sotto il braccio: salta i bancali, scavalca le colate d'inchiostro, scivola sotto la taglierina.">
+<link rel="canonical" href="https://francesco-agf.github.io/tiratura/">
+<meta property="og:description" content="Il garzone attraversa di corsa la tipografia con le bozze sotto il braccio: salta i bancali, scavalca le colate d'inchiostro, scivola sotto la taglierina.">
+<meta property="og:image" content="https://francesco-agf.github.io/tiratura/anteprima.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="it_IT">
+<meta property="og:site_name" content="Sala giochi — Arti Grafiche Fimognari">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tiratura — la corsa del ragazzo di bottega">
+<meta name="twitter:description" content="Il garzone attraversa di corsa la tipografia con le bozze sotto il braccio: salta i bancali, scavalca le colate d'inchiostro, scivola sotto la taglierina.">
+<meta name="twitter:image" content="https://francesco-agf.github.io/tiratura/anteprima.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg width='130' height='168' role='img' aria-label='Fimognari' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 130 168'> <path fill='%23EDEAE3' d='M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 105 34 C 104 36 101 38 98 38 C 96 38 95 37 94 37 C 93 37 92 36 92 35 C 91 35 91 34 90 33 C 90 33 90 32 90 32 L 90 31 C 90 29 90 27 92 25 C 93 23 94 21 94 19 C 94 15 92 13 90 12 C 87 11 85 11 82 11 C 76 11 71 13 67 18 C 63 23 61 31 61 41 L 61 52 C 61 54 61 57 60 59 C 60 61 59 62 59 63 C 59 64 58 65 57 66 C 55 67 55 68 54 68 C 54 68 53 68 51 69 C 51 69 51 69 51 69 L 85 69 L 85 70 L 61 70 L 61 151 L 61 145 C 61 146 61 146 61 146 C 61 146 61 147 62 147 C 62 148 62 148 63 149 C 63 149 64 150 65 150 C 66 150 67 151 69 151 C 75 151 78 151 79 151 L 79 152 L 31 152 L 31 151 L 38 151 C 40 151 41 150 42 150 C 43 150 44 149 44 149 C 45 149 45 148 45 148 C 46 147 46 147 46 146 C 46 146 46 146 46 146 L 46 70 L 31 70 L 31 69 C 34 69 36 69 38 68 C 40 67 41 66 42 65 C 43 64 44 63 45 61 C 45 60 46 59 46 58 C 46 57 46 56 46 54 C 46 53 46 52 46 52 L 46 52 L 46 52 C 46 50 47 48 47 46 C 47 43 48 40 49 37 C 49 35 50 32 51 31 C 52 29 53 27 55 26 C 58 21 62 18 67 14 C 72 11 78 10 83 10 C 87 10 91 10 94 12 C 97 13 99 14 101 16 C 103 18 104 20 105 22 '/> <path fill='%23EDEAE3' d='M 101 135 C 103 137 104 139 104 142 C 104 145 103 147 101 149 C 100 150 97 151 95 151 C 92 151 90 150 88 149 C 86 147 85 145 85 142 C 85 139 86 137 88 135 C 90 133 92 132 95 132 C 97 132 100 133 101 135 '/> </svg>">
+<link rel="apple-touch-icon" href="https://francesco-agf.github.io/tiratura/apple-touch-icon.png">
 <style>*{box-sizing:border-box}html{color-scheme:dark;-webkit-text-size-adjust:100%}body{margin:0;background:#080B0F}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Bodoni+Moda:opsz,wght@6..96,400;6..96,700;6..96,900&display=swap">
@@ -21,7 +36,7 @@
   :root{
     --ground:#080B0F; --surface:#0F141B; --surface-2:#141B24;
     --rule:#1F2A36; --rule-soft:#161E27;
-    --paper:#EDEAE3; --muted:#6E8091; --muted-2:#42525F;
+    --paper:#EDEAE3; --muted:#6E8091; --muted-2:#7C8C99;
     --ink-c:#00A0DF; --ink-m:#E20C7A; --ink-y:#F5C400;
     --danger:#FF5A46; --accent:#E8552F;
     --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -171,10 +186,14 @@
   .tool[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 
   /* ---------- il ponte fra i giochi della sala ---------- */
+  /* È l'unico ponte fra un gioco e l'altro: deve vedersi e deve prendersi
+     col dito. Il padding porta l'area toccabile a 44 px senza spostare di un
+     capello il punto in cui la scritta si posa. */
   .sala-link{
     font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
     color:var(--muted-2);text-decoration:none;border-bottom:1px solid transparent;
-    padding-bottom:2px;align-self:flex-end;margin:0 0 7px 4px;white-space:nowrap;
+    align-self:flex-end;white-space:nowrap;
+    padding:15px 6px 13px;margin:0 -6px -6px -2px;
   }
   .sala-link:hover{color:var(--paper);border-bottom-color:var(--muted-2)}
   .altro{
@@ -1813,7 +1832,7 @@
   }
 
   /* ---------- hud ---------- */
-  function fmt(n){ return Math.round(n).toLocaleString("it-IT"); }
+  function fmt(n){ return Math.round(n).toLocaleString("it-IT", { useGrouping: "always" }); }
   function plur(n, uno, molti){ return n + " " + (n === 1 ? uno : molti); }
   function riassunto(){
     const z = ZONE[(zona - 1) % ZONE.length].nome;
