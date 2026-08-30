@@ -22,6 +22,14 @@ const ok = (nome, cond, extra) => {
   page.on('console', m => { if (m.type() === 'error' && !/ERR_|fonts\.g/.test(m.text())) errors.push(m.text()); });
   page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
   await page.addInitScript(() => { try { localStorage.setItem('agf.giocatore', 'Collaudo'); } catch (e) {} });
+  /* Gli ostacoli si mettono **a tante unità davanti al garzone**, non a una
+     coordinata in pixel: il campo cambia larghezza con lo schermo (e nell'agosto
+     2026 è passato da 640 a 860 sul monitor), e con lui la scala `S` e il punto
+     in cui corre il garzone. Con le coordinate fisse queste prove fallivano
+     all'improvviso pur essendo il gioco intatto. */
+  await page.addInitScript(() => {
+    window.davanti = function(T, unita){ return T.stato().gx + unita * T.S(); };
+  });
   await page.route('**/rest/v1/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
   await page.goto(PAGINA);
   await page.waitForTimeout(900);
@@ -63,7 +71,7 @@ const ok = (nome, cond, extra) => {
   const t4 = await page.evaluate(() => {
     const T = window.__tiratura; T.comincia(); T.svuota();
     const s = T.stato();
-    T.metti('bancale', 300, 2);
+    T.metti('bancale', davanti(T, 150), 2);
     T.avanza(2000);
     return T.stato();
   });
@@ -73,7 +81,7 @@ const ok = (nome, cond, extra) => {
   const t5 = await page.evaluate(() => {
     const T = window.__tiratura; T.comincia(); T.svuota();
     // il bancale arriva addosso: si salta quando è vicino
-    T.metti('bancale', 300, 2);
+    T.metti('bancale', davanti(T, 150), 2);
     T.avanza(200);          // si salta prima che arrivi addosso
     T.salta();
     T.avanza(1400);
@@ -85,11 +93,11 @@ const ok = (nome, cond, extra) => {
   const t6 = await page.evaluate(() => {
     const T = window.__tiratura;
     // in piedi: urto
-    T.comincia(); T.svuota(); T.metti('taglierina', 300);
+    T.comincia(); T.svuota(); T.metti('taglierina', davanti(T, 150));
     T.avanza(2000);
     const inPiedi = T.stato();
     // scivolando: passa
-    T.comincia(); T.svuota(); T.metti('taglierina', 300);
+    T.comincia(); T.svuota(); T.metti('taglierina', davanti(T, 150));
     T.avanza(250); T.scivola(); T.avanza(1400);
     const giu = T.stato();
     return { inPiedi: inPiedi.urti, giu: giu.urti };
@@ -99,10 +107,10 @@ const ok = (nome, cond, extra) => {
   // 7. la colata d'inchiostro: a terra brucia, per aria no
   const t7 = await page.evaluate(() => {
     const T = window.__tiratura;
-    T.comincia(); T.svuota(); T.metti('inchiostro', 300);
+    T.comincia(); T.svuota(); T.metti('inchiostro', davanti(T, 150));
     T.avanza(2000);
     const dentro = T.stato().urti;
-    T.comincia(); T.svuota(); T.metti('inchiostro', 300);
+    T.comincia(); T.svuota(); T.metti('inchiostro', davanti(T, 150));
     T.avanza(250); T.salta(); T.avanza(1400);
     const sopra = T.stato().urti;
     return { dentro, sopra };
@@ -112,7 +120,7 @@ const ok = (nome, cond, extra) => {
   // 8. sul bancale ci si può atterrare sopra
   const t8 = await page.evaluate(() => {
     const T = window.__tiratura; T.comincia(); T.svuota();
-    T.metti('bancale', 321, 3);
+    T.metti('bancale', davanti(T, 169), 3);
     T.salta();
     // si campiona ogni sedici millesimi: prima o poi i piedi si posano sulla
     // cima del bancale, e lì aTerra torna vero senza essere a terra
