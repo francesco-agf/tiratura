@@ -6,7 +6,7 @@
   :root{
     --ground:#080B0F; --surface:#0F141B; --surface-2:#141B24;
     --rule:#1F2A36; --rule-soft:#161E27;
-    --paper:#EDEAE3; --muted:#6E8091; --muted-2:#42525F;
+    --paper:#EDEAE3; --muted:#6E8091; --muted-2:#7C8C99;
     --ink-c:#00A0DF; --ink-m:#E20C7A; --ink-y:#F5C400;
     --danger:#FF5A46; --accent:#E8552F;
     --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -156,10 +156,14 @@
   .tool[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 
   /* ---------- il ponte fra i giochi della sala ---------- */
+  /* È l'unico ponte fra un gioco e l'altro: deve vedersi e deve prendersi
+     col dito. Il padding porta l'area toccabile a 44 px senza spostare di un
+     capello il punto in cui la scritta si posa. */
   .sala-link{
     font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
     color:var(--muted-2);text-decoration:none;border-bottom:1px solid transparent;
-    padding-bottom:2px;align-self:flex-end;margin:0 0 7px 4px;white-space:nowrap;
+    align-self:flex-end;white-space:nowrap;
+    padding:15px 6px 13px;margin:0 -6px -6px -2px;
   }
   .sala-link:hover{color:var(--paper);border-bottom-color:var(--muted-2)}
   .altro{
@@ -1798,7 +1802,7 @@
   }
 
   /* ---------- hud ---------- */
-  function fmt(n){ return Math.round(n).toLocaleString("it-IT"); }
+  function fmt(n){ return Math.round(n).toLocaleString("it-IT", { useGrouping: "always" }); }
   function plur(n, uno, molti){ return n + " " + (n === 1 ? uno : molti); }
   function riassunto(){
     const z = ZONE[(zona - 1) % ZONE.length].nome;
