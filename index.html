@@ -153,6 +153,8 @@
   .btn.rosso{background:transparent;color:var(--danger);border-color:rgba(255,90,70,.45)}
   .btn.rosso:hover{border-color:var(--danger)}
   .btn[disabled]{opacity:.55;cursor:default}
+  .btn.sm{padding:8px 12px;font-size:10.5px}
+  .scarica{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center}
 
   .hud-strip{display:none;width:100%;max-width:560px;padding:0 2px 6px}
   .hs-row{display:flex;align-items:center;gap:10px;justify-content:space-between}
@@ -346,6 +348,10 @@
   body.campo-stretto .btn{padding:8px 11px;font-size:10.5px}
   body.campo-stretto .altro{padding:8px 11px}
   body.campo-stretto .altro .nome{font-size:17px}
+  body.campo-minimo .altro{display:none}
+  body.campo-minimo .ov-kicker{display:none}
+  body.campo-minimo .rivelazione{font-size:11px;line-height:1.45}
+  body.campo-minimo .overlay{gap:4px;padding:9px 9px}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -371,6 +377,13 @@
       <div class="panel">
         <div class="panel-label"><span>Bozze</span><span id="bozzeN">3</span></div>
         <div class="bozze" id="bozze"></div>
+      </div>
+      <div class="panel" id="pannelloCommessa">
+        <div class="panel-label"><span>Commessa</span><span id="commessaN">—</span></div>
+        <p class="formato-riga" id="commessaCosa">—</p>
+        <div class="barra-tempo" style="margin-top:9px"><i id="commessaBarra"></i></div>
+        <p class="nota" id="commessaNota">Ogni consegna ha un ordinato da evadere: quando
+        arrivi in fondo ne parte una più grossa, e a fine corsa esce la <b>bolla</b>.</p>
       </div>
       <div class="panel">
         <div class="panel-label"><span>Comandi</span></div>
@@ -413,6 +426,9 @@
           <p class="ov-score" id="ovScore" hidden>0</p>
           <p class="ov-meta" id="ovMeta" hidden></p>
           <p class="rivelazione" id="rivelazione" hidden></p>
+          <div class="scarica" id="scarica" hidden>
+            <button class="btn ghost sm" id="dlBolla">Scarica la bolla</button>
+          </div>
           <div class="signup" id="signup" hidden>
             <p class="signup-msg" id="signupMsg"></p>
             <div class="signup-row" id="signupEdit" hidden>
@@ -538,6 +554,21 @@
           <td>dieci secondi con la scia in quadricromia: i volantini valgono il doppio</td></tr>
     </table>
 
+    <h3>La commessa</h3>
+    <p>Non si corre a vuoto: ogni corsa è una <b>consegna</b>, con il suo numero di commessa
+    e i suoi metri ordinati. Quando arrivi in fondo la commessa è <b>evasa</b>, prende duemila
+    punti e ne parte subito un'altra più grossa. A fine corsa esce la <b>bolla di consegna</b>
+    da scaricare: ordinato e consegnato uno sotto l'altro, con il timbro.</p>
+
+    <h3>La rotativa</h3>
+    <p>Al <b>quarto reparto</b> smetti di correre in avanti e cominci a scappare: la rotativa
+    entra da sinistra e si mangia il pavimento dietro di te. Non arrivano ostacoli nuovi — è
+    tutto più stretto e non si perdona niente.</p>
+    <p>Ogni ostacolo che scavalchi la <b>respinge</b>; ogni botta le fa guadagnare terreno.
+    Se ti prende ti costa una bozza e riparte da lontano. Duecentosessanta metri e l'hai
+    seminata: ti resta il <b>sigillo</b>, la <i>f</i> della casa impressa a secco, che si conta
+    in classifica e finisce timbrata sulla bolla.</p>
+
     <h3>Le bozze</h3>
     <p>Ne hai <b>tre</b>. Ogni urto è una macchia d'inchiostro sul grembiule; alla terza sei
     <b>cestinato</b>. Dopo un urto resti intoccabile per un secondo e mezzo, giusto il tempo di
@@ -659,6 +690,8 @@
   const rivelazione = document.getElementById("rivelazione");
   const startBtn = document.getElementById("startBtn");
   const copyBtn = document.getElementById("copyBtn");
+  const scaricaBox = document.getElementById("scarica");
+  const dlBolla = document.getElementById("dlBolla");
   const giveUpBtn = document.getElementById("giveUpBtn");
   const pauseBtn = document.getElementById("pauseBtn");
   const soundBtn = document.getElementById("soundBtn");
@@ -672,6 +705,9 @@
   const elZonaNome = document.getElementById("zonaNome");
   const elBozze = document.getElementById("bozze");
   const elBozzeN = document.getElementById("bozzeN");
+  const elCommessaN = document.getElementById("commessaN");
+  const elCommessaCosa = document.getElementById("commessaCosa");
+  const elCommessaBarra = document.getElementById("commessaBarra");
   const effChip = document.getElementById("effChip");
   const effTxt = document.getElementById("effTxt");
   const effTempo = document.getElementById("effTempo");
@@ -693,6 +729,9 @@
   let prossimoOstacolo = 0, prossimaPioggia = 0, prossimoBonus = 0, ultimoTipo = "";
   let scossa = 0, lampo = 0, lampoColore = "#C62F16", toast = null;
   let last = 0, raf = null, causaFine = "";
+  let commessa = null, commesseEvase = [];
+  let rotativa = null;
+  let sigilli = 0, sigilloVivo = null;
   let fineA = 0;
   /* Il tempo di gioco, non quello dell'orologio: cresce solo dentro
      `aggiorna(dt)`. Tutti i cronometri — invulnerabilità, scivolata, durata
@@ -753,10 +792,15 @@
   function adattaScheda(){
     if (!overlay || overlay.hidden) return;
     const c = document.body.classList;
-    c.remove("campo-basso"); c.remove("campo-stretto");
-    if (overlay.scrollHeight > overlay.clientHeight + 1){
+    c.remove("campo-basso"); c.remove("campo-stretto"); c.remove("campo-minimo");
+    const stretto = function(){ return overlay.scrollHeight > overlay.clientHeight + 1; };
+    if (stretto()){
       c.add("campo-basso");
-      if (overlay.scrollHeight > overlay.clientHeight + 1) c.add("campo-stretto");
+      if (stretto()){
+        c.add("campo-stretto");
+        // ultimo grado: resta solo quello che serve a giocare ancora
+        if (stretto()) c.add("campo-minimo");
+      }
     }
   }
   new MutationObserver(adattaScheda).observe(overlay,
@@ -780,6 +824,47 @@
   /* Ognuno sa quanto spazio vuole dopo di sé: mettere una taglierina subito
      dopo un bancale vorrebbe dire chiedere di scivolare mentre si è per aria,
      e sarebbe una trappola, non un ostacolo. */
+
+  /* ---------- il marchio di casa ----------
+     La stessa carta in tutti e quattro i giochi: il monogramma in filigrana,
+     appena visibile in controluce come in un foglio vero. E quando si batte il
+     guasto di macchina, lo stesso segno torna — ma impresso a secco, in rilievo.
+     Uno sta sempre lì e non si guadagna; l'altro si guadagna e resta sul foglio
+     per tutta la partita. */
+const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 105 34 C 104 36 101 38 98 38 C 96 38 95 37 94 37 C 93 37 92 36 92 35 C 91 35 91 34 90 33 C 90 33 90 32 90 32 L 90 31 C 90 29 90 27 92 25 C 93 23 94 21 94 19 C 94 15 92 13 90 12 C 87 11 85 11 82 11 C 76 11 71 13 67 18 C 63 23 61 31 61 41 L 61 52 C 61 54 61 57 60 59 C 60 61 59 62 59 63 C 59 64 58 65 57 66 C 55 67 55 68 54 68 C 54 68 53 68 51 69 C 51 69 51 69 51 69 L 85 69 L 85 70 L 61 70 L 61 151 L 61 145 C 61 146 61 146 61 146 C 61 146 61 147 62 147 C 62 148 62 148 63 149 C 63 149 64 150 65 150 C 66 150 67 151 69 151 C 75 151 78 151 79 151 L 79 152 L 31 152 L 31 151 L 38 151 C 40 151 41 150 42 150 C 43 150 44 149 44 149 C 45 149 45 148 45 148 C 46 147 46 147 46 146 C 46 146 46 146 46 146 L 46 70 L 31 70 L 31 69 C 34 69 36 69 38 68 C 40 67 41 66 42 65 C 43 64 44 63 45 61 C 45 60 46 59 46 58 C 46 57 46 56 46 54 C 46 53 46 52 46 52 L 46 52 L 46 52 C 46 50 47 48 47 46 C 47 43 48 40 49 37 C 49 35 50 32 51 31 C 52 29 53 27 55 26 C 58 21 62 18 67 14 C 72 11 78 10 83 10 C 87 10 91 10 94 12 C 97 13 99 14 101 16 C 103 18 104 20 105 22 ", "M 101 135 C 103 137 104 139 104 142 C 104 145 103 147 101 149 C 100 150 97 151 95 151 C 92 151 90 150 88 149 C 86 147 85 145 85 142 C 85 139 86 137 88 135 C 90 133 92 132 95 132 C 97 132 100 133 101 135 "];
+  const MARK_BOX = [130, 168];
+  let markPath = null;
+  try { if (window.Path2D) markPath = MARK_PATHS.map(function(d){ return new Path2D(d); }); }
+  catch(e){ markPath = null; }
+
+  function filigrana(c, cx, cy, altezza, alfa, colore){
+    if (!markPath) return;
+    c.save();
+    c.globalAlpha = alfa;
+    c.fillStyle = colore;
+    const k = altezza / MARK_BOX[1];
+    c.translate(cx - (MARK_BOX[0] * k) / 2, cy - altezza / 2);
+    c.scale(k, k);
+    for (const p of markPath) c.fill(p);
+    c.restore();
+  }
+
+  /* Il sigillo: una f impressa a secco. Su un foglio bianco un'impressione a
+     secco non è inchiostro, è un rilievo — si vede solo perché ha un'ombra da
+     una parte e una luce dall'altra. Quindi si disegna due volte, sfalsata. */
+  function disegnaSigillo(c, cx, cy, raggio, forza, chiaro){
+    if (!markPath) return;
+    const d = Math.max(1, raggio * 0.045);
+    c.save();
+    c.globalAlpha = forza * (chiaro ? .5 : .34);
+    c.strokeStyle = chiaro ? "rgba(237,234,227,.9)" : "rgba(23,25,29,.55)";
+    c.lineWidth = Math.max(1, raggio * 0.05);
+    c.beginPath(); c.arc(cx, cy, raggio, 0, 6.2832); c.stroke();
+    c.restore();
+    filigrana(c, cx + d, cy + d, raggio * 1.25, forza * (chiaro ? .30 : .20), chiaro ? "#000" : "#0E1116");
+    filigrana(c, cx - d, cy - d, raggio * 1.25, forza * (chiaro ? .55 : .30), chiaro ? "#EDEAE3" : "#FFFFFF");
+  }
+
   function nuovoOstacolo(tipo){
     const x = W + 30 * S;
     if (tipo === "bancale"){
@@ -862,6 +947,7 @@
     rivelazione.hidden = true;
     ovScore.hidden = true; ovMeta.hidden = true; copyBtn.hidden = true;
     giveUpBtn.hidden = true;
+    if (scaricaBox) scaricaBox.hidden = true;
     document.getElementById("altroGioco").hidden = true;
     ovBody.hidden = false; ovTitle.hidden = false;
     punti = 0; metri = 0; mondo = 0; zona = 1; bozze = BOZZE; urti = 0; tempo = 0;
@@ -872,12 +958,80 @@
     effetto = null; finEffetto = 0;
     prossimoOstacolo = 1400; prossimaPioggia = 4200; prossimoBonus = 15000;
     ultimoTipo = ""; toast = null; scossa = 0; lampo = 0; causaFine = "";
+    commesseEvase = []; commessa = nuovaCommessa(0);
+    rotativa = null; sigilli = 0; sigilloVivo = null;
     fase = "play";
     overlay.hidden = true;
     aggiornaHud();
     last = performance.now();
     if (!raf) raf = requestAnimationFrame(giro);
     suonaReparto();
+  }
+
+
+  /* ---------- LA COMMESSA ----------
+     Correre all'infinito non ha un finale da raccontare. Ogni corsa è una
+     consegna con un numero di commessa, una quantità ordinata e un reparto di
+     destinazione: quando la evadi ne parte un'altra, più grossa. Alla fine
+     esce la bolla, con ordinato e consegnato uno sotto l'altro. */
+  const COMMESSE = [
+    { metri:  700, volantini: 24 },
+    { metri: 1000, volantini: 36 },
+    { metri: 1400, volantini: 50 },
+    { metri: 1900, volantini: 68 }
+  ];
+  function nuovaCommessa(n){
+    const c = COMMESSE[Math.min(COMMESSE.length - 1, n)];
+    return { numero: 1200 + Math.floor(Math.random() * 800), indice: n,
+             metri: c.metri, volantini: c.volantini,
+             daMetri: metri, daVolantini: volantini };
+  }
+  function evadiCommessa(){
+    commesseEvase.push({ numero: commessa.numero, metri: commessa.metri,
+                         volantini: Math.min(commessa.volantini, volantini - commessa.daVolantini) });
+    segna(2000 + 500 * commessa.indice);
+    mostraToast("COMMESSA EVASA · " + commessa.numero, true);
+    lampo = 1; lampoColore = "#F5C400";
+    campanella();
+    setTimeout(function(){ beep(1180, .16, .05); }, 140);
+    commessa = nuovaCommessa(commessa.indice + 1);
+    aggiornaHud();
+  }
+
+  /* ---------- LA ROTATIVA ----------
+     Al quarto reparto smetti di correre in avanti e cominci a scappare: la
+     rotativa entra da sinistra e mangia il pavimento dietro di te. Non arrivano
+     ostacoli nuovi — è tutto più stretto e non si perdona niente. Ogni ostacolo
+     scavalcato la respinge, ogni botta la fa guadagnare terreno. Se ti prende ti
+     costa una bozza e riparte da lontano. Chi la semina si prende il sigillo. */
+  const ROTATIVA_OGNI = 4;      // un reparto su quattro
+  const ROTATIVA_METRI = 260;   // quanto dura la fuga
+
+  function chiamaRotativa(){
+    if (rotativa || fase !== "play") return;
+    rotativa = { x: -190 * S, w: 150 * S, giro: 0, finoA: metri + ROTATIVA_METRI };
+    mostraToast("LA ROTATIVA", true);
+    lampo = 1; lampoColore = "#C62F16";
+    scossa = 1;
+    rumore(.5, "lowpass", 320, .2);
+    beep(90, .5, .07);
+  }
+  function respingiRotativa(px){
+    if (rotativa) rotativa.x = Math.max(-280 * S, rotativa.x - px);
+  }
+  function fineRotativa(vinta){
+    rotativa = null;
+    if (vinta) imprimiSigillo();
+  }
+
+  function imprimiSigillo(){
+    sigilli++;
+    sigilloVivo = { t: 0 };
+    mostraToast("SIGILLO", true);
+    lampo = 1; lampoColore = "#F5C400";
+    beep(420, .16, .05);
+    setTimeout(function(){ beep(160, .5, .07); }, 90);
+    aggiornaHud();
   }
 
   function salta(){
@@ -914,6 +1068,13 @@
       return;
     }
     bozze--; urti++;
+    // i fogli che ti scappano di mano: si vedono partire
+    for (let i = 0; i < 7; i++)
+      briciole.push({ x: garzoneX() + 12 * S, y: py - 28 * S,
+                      vx: (0.05 + Math.random() * 0.16) * S, vy: -(0.12 + Math.random() * 0.2) * S,
+                      rot: Math.random() * 6.28, vr: (Math.random() - .5) * .5,
+                      vita: 1, r: 6 * S, colore: CARTA });
+    if (rotativa) rotativa.x += 60 * S;
     invulnFino = ora + INVULN;
     scossa = 1; lampo = 1; lampoColore = "#C62F16";
     schizza(garzoneX(), py - altezzaGarzone() / 2, o && o.colore ? o.colore : INCHIOSTRO, 20);
@@ -985,9 +1146,25 @@
       mostraToast(ZONE[(zona - 1) % ZONE.length].nome, true);
       campanella();
       aggiornaHud();
+      if (zona % ROTATIVA_OGNI === 0) chiamaRotativa();
     }
 
     if (effetto && ora > finEffetto){ effetto = null; aggiornaHud(); }
+
+    // la commessa: quando i metri ordinati sono consegnati, ne parte un'altra
+    if (commessa && metri - commessa.daMetri >= commessa.metri) evadiCommessa();
+
+    // la rotativa: avanza da sola, la si respinge scavalcando
+    if (rotativa){
+      rotativa.x += 0.026 * S * dt;
+      rotativa.giro += dx / (26 * S);
+      if (metri >= rotativa.finoA){
+        fineRotativa(true);
+      } else if (rotativa.x + rotativa.w >= garzoneX() - PW * S / 2){
+        rotativa.x = -230 * S;
+        urto({ t: "rotativa", colore: "#C62F16" });
+      }
+    }
 
     // il salto
     if (!aTerra || vy < 0){
@@ -1024,6 +1201,7 @@
       o.x -= dx + (o.extra ? o.extra * dt : 0);
       if (o.t === "bobina") o.giro += (dx + o.extra * dt) / o.r;
       if (o.t === "taglierina") o.giu = Math.min(1, o.giu + dt / 420);
+      if (o.x + o.w < gx0 && !o.contato){ o.contato = true; respingiRotativa(44 * S); }
       if (o.x + o.w < -40 * S){ ostacoli.splice(i, 1); continue; }
       if (o.morto) continue;
 
@@ -1114,6 +1292,7 @@
     if (scossa > 0) scossa = Math.max(0, scossa - dt / 340);
     if (lampo > 0) lampo = Math.max(0, lampo - dt / 380);
     if (toast){ toast.t += dt; if (toast.t > 1700) toast = null; }
+    if (sigilloVivo){ sigilloVivo.t += dt; if (sigilloVivo.t > 1700) sigilloVivo = null; }
     aggiornaBarra();
   }
 
@@ -1157,6 +1336,7 @@
       ovBody.hidden = false;
       ovScore.hidden = true; ovMeta.hidden = true; rivelazione.hidden = true;
       copyBtn.hidden = true; signup.hidden = true; startName.hidden = true;
+      if (scaricaBox) scaricaBox.hidden = true;
       document.getElementById("altroGioco").hidden = true;
       giveUpBtn.hidden = false;
       startBtn.textContent = "Riprendi";
@@ -1210,6 +1390,7 @@
       (volantini === 1 ? "volantino" : "volantini") + ".";
     startBtn.textContent = "Un'altra consegna";
     copyBtn.hidden = false; copyBtn.textContent = "Copia risultato";
+    if (scaricaBox) scaricaBox.hidden = false;
     giveUpBtn.hidden = true;
     startName.hidden = true;
     mostraAltroGioco();
@@ -1489,6 +1670,8 @@
       ctx.moveTo(x, suolo + 28 * S); ctx.lineTo(x - 10 * S, H);
     }
     ctx.stroke();
+    // la filigrana: la stessa carta di tutti i giochi della sala
+    filigrana(ctx, W * .5, suolo - 96 * S, 150 * S, .07, "#EDEAE3");
   }
 
   function disegnaOstacolo(o){
@@ -1758,7 +1941,8 @@
     ctx.fillStyle = CARTA;
     ctx.save();
     ctx.translate(14 * S, -28 * S); ctx.rotate(.16);
-    for (let i = 0; i < 3; i++){
+    // tanti fogli quante bozze ti restano: si vede quanto sei messo male
+    for (let i = 0; i < Math.max(0, bozze); i++){
       ctx.fillStyle = i % 2 ? "#F0EDE6" : CARTA;
       ctx.fillRect(-6 * S, -3 * S + i * 2.6 * S, 13 * S, 2.4 * S);
     }
@@ -1810,6 +1994,59 @@
     ctx.restore();
   }
 
+
+  /* La rotativa che ti mangia il pavimento alle spalle. */
+  function disegnaRotativa(){
+    if (!rotativa) return;
+    const cy = suolo - 46 * S, r = 46 * S;
+    // il buio che si porta dietro
+    const g = ctx.createLinearGradient(rotativa.x - 60 * S, 0, rotativa.x + rotativa.w, 0);
+    g.addColorStop(0, "rgba(10,8,8,.92)");
+    g.addColorStop(1, "rgba(10,8,8,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(rotativa.x - 60 * S, 0, rotativa.w + 60 * S, H);
+
+    ctx.save();
+    ctx.translate(rotativa.x + rotativa.w * .55, cy);
+    // il cilindro
+    ctx.fillStyle = "#241C1A";
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill();
+    ctx.strokeStyle = "#3D2F2B"; ctx.lineWidth = 3 * S;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.stroke();
+    // le razze che girano
+    ctx.rotate(rotativa.giro);
+    ctx.strokeStyle = "#6B534B"; ctx.lineWidth = 2.5 * S;
+    for (let i = 0; i < 6; i++){
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(i * 1.047) * r * .82, Math.sin(i * 1.047) * r * .82);
+      ctx.stroke();
+    }
+    ctx.restore();
+    // la carta che esce
+    ctx.fillStyle = CARTA;
+    ctx.globalAlpha = .85;
+    for (let i = 0; i < 4; i++){
+      const yy = cy - r + i * 16 * S + Math.sin(rotativa.giro + i) * 3 * S;
+      ctx.fillRect(rotativa.x + rotativa.w * .5, yy, rotativa.w * .5, 5 * S);
+    }
+    ctx.globalAlpha = 1;
+    // quanto manca a seminarla
+    const resta = Math.max(0, Math.ceil(rotativa.finoA - metri));
+    ctx.fillStyle = "#C62F16";
+    ctx.font = "600 " + Math.round(13 * S) + 'px "IBM Plex Mono", monospace';
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillText("ROTATIVA · " + resta + " M", W / 2, 12 * S);
+  }
+
+  /* Il sigillo impresso a secco, al centro del campo, che sfuma. */
+  function disegnaSigilloVivo(){
+    if (!sigilloVivo) return;
+    const k = Math.min(1, sigilloVivo.t / 260);
+    const via = Math.max(0, 1 - Math.max(0, sigilloVivo.t - 900) / 700);
+    disegnaSigillo(ctx, W / 2, H * .42, (90 - 46 * k) * S, via, true);
+  }
+
   function disegna(){
     ctx.save();
     if (scossa > 0 && !reduceMotion)
@@ -1820,7 +2057,9 @@
     for (const o of ostacoli) disegnaOstacolo(o);
     for (const r of raccolte) disegnaRaccolta(r);
     if (fase !== "cestinato" || Math.floor(performance.now() / 90) % 2) disegnaGarzone();
+    disegnaRotativa();
     disegnaBriciole();
+    disegnaSigilloVivo();
     disegnaToast();
     ctx.restore();
     if (lampo > 0){
@@ -1834,9 +2073,176 @@
   /* ---------- hud ---------- */
   function fmt(n){ return Math.round(n).toLocaleString("it-IT", { useGrouping: "always" }); }
   function plur(n, uno, molti){ return n + " " + (n === 1 ? uno : molti); }
+
+  /* ---------- LA BOLLA DI CONSEGNA ----------
+     Quello che porti via da una corsa non è un punteggio: è il documento che
+     accompagna la merce. Numero di commessa, ordinato e consegnato uno sotto
+     l'altro, gli scarti, e il timbro del reparto. Se hai seminato la rotativa
+     c'è anche il sigillo della casa, impresso a secco. */
+  const BOLLA_L = 1000;
+
+  function disegnaBolla(c){
+    const righe = commesseEvase.slice(-6);
+    const alto = 620 + righe.length * 30;
+    c.canvas.width = BOLLA_L; c.canvas.height = alto;
+    c.fillStyle = "#F7F4EC"; c.fillRect(0, 0, BOLLA_L, alto);
+    filigrana(c, BOLLA_L / 2, alto / 2, alto * .58, .035, "#17191D");
+
+    const L = 76, R = BOLLA_L - 76;
+    c.textBaseline = "alphabetic";
+
+    // testata
+    c.fillStyle = "#17191D";
+    c.font = '900 46px "Bodoni Moda", Didot, Georgia, serif';
+    c.textAlign = "left";
+    c.fillText("Tiratura", L, 96);
+    const w1 = c.measureText("Tiratura").width;
+    c.fillStyle = "#E8552F";
+    c.beginPath(); c.arc(L + w1 + 12, 89, 7, 0, 6.2832); c.fill();
+
+    c.fillStyle = "#8A8F94";
+    c.font = '500 12px "IBM Plex Mono", monospace';
+    c.textAlign = "right";
+    c.fillText("ARTI GRAFICHE FIMOGNARI · MILANO · DAL 1950", R, 68);
+    c.fillStyle = "#17191D";
+    c.font = '600 26px "IBM Plex Mono", monospace';
+    c.fillText("BOLLA DI CONSEGNA", R, 100);
+
+    c.strokeStyle = "rgba(23,25,29,.28)"; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(L, 122.5); c.lineTo(R, 122.5); c.stroke();
+
+    // intestazione
+    const eti = function(t, v, x, y){
+      c.textAlign = "left";
+      c.fillStyle = "#8A8F94";
+      c.font = '500 11px "IBM Plex Mono", monospace';
+      c.fillText(t.toUpperCase(), x, y);
+      c.fillStyle = "#17191D";
+      c.font = '500 19px "IBM Plex Mono", monospace';
+      c.fillText(v, x, y + 26);
+    };
+    eti("Garzone", (nomeSalvato() || "senza nome"), L, 158);
+    eti("Data", dayToLabel(dateKey()), L + 300, 158);
+    eti("Reparto raggiunto", zona + "º · " + ZONE[(zona - 1) % ZONE.length].nome, L + 480, 158);
+
+    // la tabella dell'ordinato
+    let y = 250;
+    c.strokeStyle = "rgba(23,25,29,.18)";
+    c.beginPath(); c.moveTo(L, y - 22.5); c.lineTo(R, y - 22.5); c.stroke();
+    c.fillStyle = "#8A8F94";
+    c.font = '500 11px "IBM Plex Mono", monospace';
+    c.textAlign = "left";  c.fillText("COMMESSA", L, y);
+    c.textAlign = "right"; c.fillText("ORDINATO", L + 470, y);
+    c.fillText("CONSEGNATO", L + 640, y);
+    c.fillText("ESITO", R, y);
+    y += 12;
+    c.beginPath(); c.moveTo(L, y + .5); c.lineTo(R, y + .5); c.stroke();
+    y += 30;
+
+    c.font = '500 15px "IBM Plex Mono", monospace';
+    for (const r of righe){
+      c.fillStyle = "#17191D";
+      c.textAlign = "left";  c.fillText("N. " + r.numero, L, y);
+      c.textAlign = "right"; c.fillText(fmt(r.metri) + " m", L + 470, y);
+      c.fillText(fmt(r.metri) + " m", L + 640, y);
+      c.fillStyle = "#1F7A4D"; c.fillText("EVASA", R, y);
+      y += 30;
+    }
+    if (commessa){
+      const fatti = Math.max(0, Math.floor(metri - commessa.daMetri));
+      c.fillStyle = "#17191D";
+      c.textAlign = "left";  c.fillText("N. " + commessa.numero, L, y);
+      c.textAlign = "right"; c.fillText(fmt(commessa.metri) + " m", L + 470, y);
+      c.fillText(fmt(fatti) + " m", L + 640, y);
+      c.fillStyle = "#C8102E"; c.fillText("PARZIALE", R, y);
+      y += 30;
+    }
+    y += 6;
+    c.strokeStyle = "rgba(23,25,29,.18)";
+    c.beginPath(); c.moveTo(L, y + .5); c.lineTo(R, y + .5); c.stroke();
+
+    // il riepilogo della corsa
+    y += 40;
+    const voce = function(t, v, x){
+      c.textAlign = "left";
+      c.fillStyle = "#8A8F94";
+      c.font = '500 11px "IBM Plex Mono", monospace';
+      c.fillText(t.toUpperCase(), x, y);
+      c.fillStyle = "#17191D";
+      c.font = '600 30px "IBM Plex Mono", monospace';
+      c.fillText(v, x, y + 34);
+    };
+    voce("Metri lineari", fmt(Math.floor(metri)), L);
+    voce("Volantini", fmt(volantini), L + 230);
+    voce("Biglietti", fmt(biglietti), L + 420);
+    voce("Bozze macchiate", fmt(urti), L + 610);
+
+    // il timbro del punteggio
+    c.textAlign = "right";
+    c.fillStyle = "#8A8F94";
+    c.font = '500 11px "IBM Plex Mono", monospace';
+    c.fillText("PUNTI", R, y);
+    c.fillStyle = "#17191D";
+    c.font = '600 44px "IBM Plex Mono", monospace';
+    c.fillText(fmt(punti), R, y + 38);
+
+    // il sigillo, se hai seminato la rotativa
+    if (sigilli){
+      disegnaSigillo(c, R - 92, alto - 132, 46, 1, false);
+      c.fillStyle = "#8A8F94";
+      c.font = '500 11px "IBM Plex Mono", monospace';
+      c.textAlign = "center";
+      c.fillText(plur(sigilli, "SIGILLO", "SIGILLI").toUpperCase(), R - 92, alto - 70);
+    }
+
+    // il colophon
+    c.strokeStyle = "rgba(23,25,29,.18)"; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(L, alto - 96.5); c.lineTo(R, alto - 96.5); c.stroke();
+    c.fillStyle = "#6B6F73";
+    c.font = '500 12px "IBM Plex Mono", monospace';
+    c.textAlign = "left"; c.textBaseline = "top";
+    c.fillText("MERCE VIAGGIANTE A CURA DEL GARZONE · " +
+               plur(commesseEvase.length, "COMMESSA EVASA", "COMMESSE EVASE").toUpperCase(), L, alto - 82);
+    c.fillText(SHARE_URL.replace("https://", "").toUpperCase(), L, alto - 60);
+  }
+
+  /* ---- consegna del file ---- */
+  function scaricaBlob(blob, nome){
+    const u = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = u; a.download = nome; a.rel = "noopener";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){
+      try { document.body.removeChild(a); } catch(e){}
+      URL.revokeObjectURL(u);
+    }, 5000);
+  }
+  function consegnaFoglio(blob, nome, btn, base){
+    const fine = function(msg){
+      btn.disabled = false; btn.textContent = msg;
+      setTimeout(function(){ btn.textContent = base; }, 2600);
+    };
+    try {
+      if (window.File && navigator.canShare){
+        const file = new File([blob], nome, { type: blob.type });
+        if (navigator.canShare({ files: [file] })){
+          navigator.share({ files: [file], title: "Tiratura", text: INVITO })
+            .then(function(){ fine("Fatto"); },
+                  function(){ scaricaBlob(blob, nome); fine("Scaricato"); });
+          return;
+        }
+      }
+    } catch(e){}
+    scaricaBlob(blob, nome);
+    fine("Scaricato");
+  }
+  window.__disegnaProva = disegnaBolla;   // serve solo al collaudo
+
   function riassunto(){
     const z = ZONE[(zona - 1) % ZONE.length].nome;
-    return zona + "º reparto · " + z + " · " + fmt(Math.floor(metri)) + " metri";
+    return zona + "º reparto · " + z + " · " + fmt(Math.floor(metri)) + " metri" +
+           (commesseEvase.length ? " · " + plur(commesseEvase.length, "commessa evasa", "commesse evase") : "") +
+           (sigilli ? " · " + plur(sigilli, "sigillo", "sigilli") : "");
   }
   function aggiornaBarra(){
     if (!effBarra) return;
@@ -1858,6 +2264,12 @@
     msZona.textContent = zona + "º · " + z.nome;
     msPunti.textContent = fmt(punti);
     msMetri.textContent = fmt(Math.floor(metri)) + " m · " + plur(bozze, "bozza", "bozze");
+    if (elCommessaN && commessa){
+      elCommessaN.textContent = "N. " + commessa.numero;
+      elCommessaCosa.textContent = fmt(commessa.metri) + " metri";
+      const fatti = Math.max(0, Math.min(1, (metri - commessa.daMetri) / commessa.metri));
+      if (elCommessaBarra) elCommessaBarra.style.width = Math.round(fatti * 100) + "%";
+    }
     elBozzeN.textContent = String(bozze);
     elBozze.innerHTML = "";
     for (let i = 0; i < BOZZE; i++){
@@ -1925,6 +2337,23 @@
   pauseBtn.addEventListener("click", function(){
     if (fase === "play" || fase === "pause") togglePausa();
   });
+  if (dlBolla) dlBolla.addEventListener("click", function(){
+    const base = dlBolla.dataset.base || dlBolla.textContent;
+    dlBolla.dataset.base = base;
+    dlBolla.disabled = true; dlBolla.textContent = "Compilo…";
+    setTimeout(function(){
+      try {
+        const cv2 = document.createElement("canvas");
+        disegnaBolla(cv2.getContext("2d"));
+        cv2.toBlob(function(b){
+          if (!b){ dlBolla.disabled = false; dlBolla.textContent = base; return; }
+          const chi = (nomeSalvato() || "tiratura").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+          consegnaFoglio(b, "bolla-" + chi + "-" + Math.round(punti) + ".jpg", dlBolla, base);
+        }, "image/jpeg", .92);
+      } catch(e){ dlBolla.disabled = false; dlBolla.textContent = base; }
+    }, 30);
+  });
+
   giveUpBtn.addEventListener("click", function(){
     if (fase !== "pause") return;
     fase = "play";
@@ -1944,6 +2373,8 @@
            plur(biglietti, "biglietto", "biglietti") + " · " +
            plur(volantini, "volantino", "volantini") + " · " +
            plur(urti, "urto", "urti") + "\n" +
+           (commesseEvase.length ? plur(commesseEvase.length, "commessa evasa", "commesse evase") + "\n" : "") +
+           (sigilli ? plur(sigilli, "rotativa seminata", "rotative seminate") + "\n" : "") +
            SHARE_URL;
   }
   copyBtn.addEventListener("click", function(){
@@ -2271,7 +2702,8 @@
           quads: Math.min(25000, biglietti),
           level: Math.max(1, Math.min(500, zona)),
           dati: { metri: Math.floor(metri), volantini: volantini, biglietti: biglietti,
-                  manifesti: manifesti, urti: urti, causa: causaFine }
+                  manifesti: manifesti, urti: urti, causa: causaFine,
+                  commesse: commesseEvase.length, sigilli: sigilli }
         }
       });
       inviato = true;
@@ -2357,9 +2789,18 @@
                aTerra:aTerra, salti:salti, y:Math.round(py), suolo:Math.round(suolo),
                scivola:scivolaFino > tempo,
                ostacoli:ostacoli.filter(function(o){ return !o.morto; }).length,
-               raccolte:raccolte.length, causa:causaFine };
+               raccolte:raccolte.length, causa:causaFine,
+               sigilli:sigilli, rotativaViva:!!rotativa,
+               commesse:commesseEvase.length };
     },
     comincia: comincia,
+    chiamaRotativa: chiamaRotativa,
+    rotativa: function(){ return rotativa ? { x: rotativa.x, resta: rotativa.finoA - metri } : null; },
+    fineRotativa: function(){ fineRotativa(true); },
+    commessa: function(){ return commessa; },
+    evadi: function(){ evadiCommessa(); },
+    bolla: function(){ const c = document.createElement("canvas");
+                       disegnaBolla(c.getContext("2d")); return [c.width, c.height]; },
     salta: salta,
     scivola: scivola,
     /* Avanza la simulazione a mano, in fette da 16 ms: requestAnimationFrame
