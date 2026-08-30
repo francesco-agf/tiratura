@@ -297,6 +297,36 @@
     .pad button{padding:12px 0}
     .hs-v{font-size:18px}
   }
+
+  /* ---------- i due gradi di stretta della scheda ----------
+     Li accende il gioco stesso, misurando: `campo-basso` quando la scheda in
+     corpo pieno non sta nel riquadro, `campo-stretto` quando non basta. */
+  body.campo-basso .overlay{gap:8px;padding:16px 13px}
+  body.campo-basso .ov-title{font-size:23px}
+  body.campo-basso .ov-body{font-size:12.5px;line-height:1.55;max-width:40ch}
+  body.campo-basso .ov-score{font-size:34px}
+  body.campo-basso .ov-meta{font-size:10px}
+  body.campo-basso .rivelazione{font-size:12px;line-height:1.55}
+  body.campo-basso .startname{gap:5px}
+  body.campo-basso .startname input,
+  body.campo-basso .signup-row input{padding:9px 11px;font-size:14px}
+  body.campo-basso .btn{padding:10px 13px;font-size:11px}
+  body.campo-basso .altro{padding:10px 12px}
+  body.campo-basso .altro .nome{font-size:19px}
+  /* del rimando all'altro gioco bastano il nome e la freccia */
+  body.campo-basso .altro .desc{display:none}
+  body.campo-basso .btn-row{gap:6px;margin-top:3px}
+
+  body.campo-stretto .overlay{gap:5px;padding:11px 10px}
+  body.campo-stretto .ov-title{font-size:20px}
+  body.campo-stretto .ov-score{font-size:28px}
+  body.campo-stretto .rivelazione{font-size:11.5px;line-height:1.5}
+  /* la presentazione si legge nelle regole: qui restano nome, punteggio e tasti */
+  body.campo-stretto .ov-body{display:none}
+  body.campo-stretto .startname-note{display:none}
+  body.campo-stretto .btn{padding:8px 11px;font-size:10.5px}
+  body.campo-stretto .altro{padding:8px 11px}
+  body.campo-stretto .altro .nome{font-size:17px}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -688,6 +718,34 @@
     disegna();
   }
   window.addEventListener("resize", resize);
+
+  /* ---------- la scheda deve stare dentro il riquadro ----------
+     Il campo di gioco fa da cornice alla scheda. Su un telefono, e su Leporello
+     e Tiratura anche sul monitor perché il loro campo è largo e basso, la
+     scheda di fine partita — punteggio, rivelazione, iscrizione alla classifica,
+     rimando all'altro gioco — è più alta del riquadro e comincia a scorrere:
+     è il guaio che si vedeva come «il box scorre su e giù».
+
+     Qui non si indovina una misura: si prova. Si misura sempre a tipografia
+     piena, e solo se non ci sta si stringe di un grado (`campo-basso`) e, se
+     ancora non basta, di due (`campo-stretto`). Le tre letture stanno nello
+     stesso giro di codice, senza che il browser dipinga in mezzo, quindi non
+     si vede nessuno sfarfallio. */
+  function adattaScheda(){
+    if (!overlay || overlay.hidden) return;
+    const c = document.body.classList;
+    c.remove("campo-basso"); c.remove("campo-stretto");
+    if (overlay.scrollHeight > overlay.clientHeight + 1){
+      c.add("campo-basso");
+      if (overlay.scrollHeight > overlay.clientHeight + 1) c.add("campo-stretto");
+    }
+  }
+  new MutationObserver(adattaScheda).observe(overlay,
+    { attributes:true, childList:true, subtree:true, characterData:true });
+  window.addEventListener("resize", adattaScheda);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", adattaScheda);
+  setTimeout(adattaScheda, 0);
+
   if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
 
   function garzoneX(){ return W * 0.20; }
