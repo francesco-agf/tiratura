@@ -94,6 +94,14 @@
   .overlay{position:absolute;inset:0;background:rgba(8,11,15,.93);backdrop-filter:blur(3px);
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:12px;padding:26px 22px;text-align:center;border-radius:2px;overflow:auto}
+
+  /* Con justify-content:center un contenuto più alto del riquadro viene tagliato
+     in cima e diventa irraggiungibile — il riquadro «scorre su e giù» e la parte
+     alta non si vede. I due pseudo-elementi con margine automatico centrano
+     quando c'è spazio e si tolgono di mezzo quando non ce n'è. */
+  .overlay{justify-content:flex-start;overflow-y:auto;overscroll-behavior:contain}
+  .overlay::before,.overlay::after{content:"";display:block;flex:0 0 0;margin:auto}
+
   .ov-kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
              color:var(--accent);margin:0}
   .ov-title{font-family:var(--display);font-weight:700;font-size:clamp(26px,5vw,40px);
@@ -239,6 +247,17 @@
              vertical-align:-1px;box-shadow:0 0 0 1px rgba(237,234,227,.25)}
 
   @media (max-width:900px){
+    /* la scheda iniziale deve stare dentro il campo anche su un telefono */
+    .overlay{gap:8px;padding:16px 13px}
+    .ov-title{font-size:23px}
+    .ov-body{font-size:12.5px;line-height:1.55;max-width:36ch}
+    .ov-score{font-size:34px}
+    .ov-meta{font-size:10px}
+    .startname{gap:5px}
+    .startname input,.signup-row input{padding:9px 11px;font-size:14px}
+    .btn{padding:10px 13px;font-size:11px}
+    .altro{padding:10px 12px}
+    .altro .nome{font-size:19px}
     .sheet{padding:12px 10px 26px}
     .stage{gap:0;padding-top:12px}
     .rail{display:none}
@@ -251,6 +270,12 @@
     .avatar .logo-f{width:13px}
     .logo-agf{width:118px}
     .colofoot{margin-top:22px;justify-content:center;text-align:center}
+  }
+  /* sotto una certa altezza la presentazione non ci sta: resta il titolo, il
+     nome e i tasti, e il testo si legge nelle regole */
+  @media (max-width:900px) and (max-height:720px){
+    .ov-body{display:none}
+    .startname-note{display:none}
   }
   @media (max-width:900px) and (max-height:760px){
     .logotype{font-size:22px}
@@ -310,10 +335,9 @@
           <p class="ov-kicker" id="ovKicker">Reparto spedizione</p>
           <h2 class="ov-title" id="ovTitle">Le bozze vanno di là</h2>
           <p class="ov-body" id="ovBody">
-            Il garzone attraversa di corsa tutto lo stabilimento con le bozze sotto il braccio.
-            <em>Salta i bancali</em>, scavalca le colate d'inchiostro, passa <em>scivolando</em>
-            sotto la taglierina — e intanto raccogli i volantini e i biglietti da visita che
-            piovono dall'alto.
+            Il garzone attraversa lo stabilimento con le bozze sotto il braccio.
+            <em>Salta i bancali</em>, scavalca l'inchiostro, passa <em>scivolando</em> sotto la
+            taglierina, e intanto raccoglie quello che piove dall'alto.
           </p>
           <div class="startname" id="startName">
             <label for="nameInput">Come ti chiami?</label>
@@ -634,7 +658,10 @@
     W = Math.max(280, Math.round(availW));
     // il campo è più alto che largo di poco: sopra la testa ci vuole aria,
     // perché i volantini piovono dall'alto
-    H = Math.round(Math.min(maxH, W / (stretto ? 1.45 : 1.75)));
+    /* Sul telefono il campo è quasi quadrato: la strada davanti la dà la
+       larghezza (la scala S si prende da lì), e l'altezza in più serve al cielo
+       e — soprattutto — a far stare dentro la scheda iniziale senza scorrere. */
+    H = Math.round(Math.min(maxH, W / (stretto ? 0.98 : 1.75)));
     if (H < W / 2.2) H = Math.round(W / 2.2);
     S = W / LARGO;
     suolo = Math.round(H - 56 * (W / LARGO));
