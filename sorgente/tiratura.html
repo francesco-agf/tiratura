@@ -44,7 +44,7 @@
   .signature .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
     text-transform:uppercase;color:var(--muted);text-align:right;line-height:1.7;display:block}
   .signature .kicker b{display:block;color:var(--paper);font-weight:500}
-  .avatar{width:46px;height:46px;border-radius:50%;background:var(--paper);color:var(--ground);
+  .avatar{width:46px;height:46px;border-radius:50%;background:#fff;color:var(--ground);
           display:flex;align-items:center;justify-content:center;flex:none;
           box-shadow:0 0 0 1px rgba(237,234,227,.2), 0 0 0 5px rgba(237,234,227,.06)}
   .logo-f{width:100%;height:auto;color:inherit;display:block}
@@ -156,7 +156,10 @@
     display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
     font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
   .colofoot .studio{color:var(--muted);display:flex;align-items:center;gap:14px}
-  .logo-agf{width:150px;height:auto;color:var(--muted-2);display:block}
+  /* Il marchio non e' testo: e' il marchio. Va in bianco pieno sul fondo scuro e in
+     nero sul bianco — non nel grigio dell'interfaccia, che lo faceva sembrare
+     azzurrino. */
+  .logo-agf{width:150px;height:auto;color:#fff;display:block}
   .audio-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .tool{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
     color:var(--muted);background:transparent;border:1px solid var(--rule);border-radius:2px;
