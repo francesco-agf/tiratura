@@ -239,6 +239,16 @@
               text-transform:uppercase;color:var(--muted-2);font-weight:400}
   .board-meta{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
               text-transform:uppercase;color:var(--muted-2)}
+  /* Due classifiche, non due pagine: la stessa lista, filtrata sul giorno.
+     «Di oggi» è il senso della tiratura del giorno — chi gioca lo stesso
+     giorno si confronta alla pari. */
+  .quando{display:flex;gap:0;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+  .quando-b{background:none;border:0;color:var(--muted-2);cursor:pointer;
+            font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+            text-transform:uppercase;padding:7px 11px}
+  .quando-b + .quando-b{border-left:1px solid var(--rule)}
+  .quando-b[aria-pressed="true"]{background:var(--surface-2);color:var(--paper)}
+  .quando-b:hover{color:var(--paper)}
   .board-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
   .board-list li{display:grid;grid-template-columns:30px 1fr auto;gap:12px;
     align-items:baseline;padding:8px 0;border-top:1px solid var(--rule-soft)}
@@ -258,6 +268,19 @@
 
   /* nome del giocatore */
   .startname{display:flex;flex-direction:column;align-items:center;gap:7px;width:100%;max-width:300px}
+  /* Si gioca al primo tocco: il nome si firma alla fine. Chi ce l'ha gia' lo
+     vede qui in una riga e puo' cambiarlo, senza che gli si chieda niente. */
+  .firma{font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+         color:var(--muted-2);margin:2px 0 0;text-align:center}
+  .firma b{color:var(--paper);font-weight:600;letter-spacing:.02em}
+  .firma .lnk{padding:0;font-size:11px}
+  /* la riga sotto i pulsanti: l'altra strada, non una scelta alla pari */
+  .modo{font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+        color:var(--muted-2);margin:2px 0 0;text-align:center}
+  .modo .lnk{padding:0;font-size:11px;color:var(--paper)}
+  .modo .lnk:hover{color:var(--accent)}
+  body.campo-stretto .modo{font-size:10px}
+  body.campo-raso .modo{display:none}
   .startname label{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
                    text-transform:uppercase;color:var(--muted)}
   .startname input,.signup-row input{
@@ -363,6 +386,42 @@
   body.campo-minimo .rivelazione{font-size:11px;line-height:1.45}
   body.campo-minimo .overlay{gap:4px;padding:9px 9px}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* Chi naviga da tastiera deve vedere dov'e'. Solo :focus-visible: il contorno
+     non compare quando si clicca col mouse. */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* Quarto grado: il campo è così basso che la scheda non ci sta nemmeno
+     stretta. Resta il minimo indispensabile per rigiocare — e i pulsanti non si
+     rimpiccioliscono, perché è da telefono che servono grandi. */
+  body.campo-raso .overlay{gap:3px;padding:8px}
+  body.campo-raso .rivelazione{display:none}
+  body.campo-raso .ov-meta{display:none}
+  body.campo-raso .ov-title{font-size:17px}
+  body.campo-raso .ov-score{font-size:23px}
+  body.campo-raso .signup-msg{font-size:10px}
+  body.campo-raso .btn-row{gap:5px;margin-top:0}
+
+  /* ---------- bersagli da dito ----------
+     Su un telefono un bersaglio sotto i 44 px si sbaglia. Non si cambia la
+     tipografia: si dà altezza minima e si allineano al centro, così il testo
+     resta identico e cambia solo quanto è grande la zona che risponde. */
+  @media (pointer: coarse){
+    .btn,.tool,.lnk,.sala-link,.invito,.quando-b,.oggi-nome,#boardOpen,#rulesBtn,#inviteBtn,#soundBtn,
+    #padToggle,#musicSel,.audio-bar select{
+      min-height:44px;
+    }
+    .tool,.lnk,.sala-link,.quando-b,.oggi-nome,#boardOpen,#padToggle{
+      display:inline-flex;align-items:center;justify-content:center;
+    }
+    #padToggle{min-width:44px}
+    /* I collegamenti dentro una frase («cambia nome», «una partita libera»)
+       restano alti quanto la riga: sono bersagli in linea nel testo, e dargli
+       44 px gonfierebbe la scheda di ottantotto pixel per due parole. */
+    .firma .lnk,.modo .lnk{min-height:0;display:inline}
+    .colofoot{row-gap:0}
+    .piede-destra a{display:inline-flex;align-items:center;min-height:44px}
+  }
 </style>
 
 <div class="sheet">
@@ -426,7 +485,8 @@
             <em>Salta i bancali</em>, scavalca l'inchiostro, passa <em>scivolando</em> sotto la
             taglierina, e intanto raccoglie quello che piove dall'alto.
           </p>
-          <div class="startname" id="startName">
+          <p class="firma" id="firmaRiga" hidden>Giochi come <b id="firmaNome"></b> &middot; <button class="lnk" id="cambiaFirma">cambia nome</button></p>
+          <div class="startname" id="startName" hidden>
             <label for="nameInput">Come ti chiami?</label>
             <input id="nameInput" type="text" maxlength="20" autocomplete="nickname"
                    spellcheck="false" placeholder="Il tuo nome" aria-label="Il tuo nome">
@@ -455,6 +515,9 @@
             <button class="btn ghost" id="copyBtn" hidden>Copia risultato</button>
             <button class="btn rosso" id="giveUpBtn" hidden>Abbandona la partita</button>
           </div>
+          <!-- La partita libera e' una seconda strada, non una scelta alla pari:
+               il giorno e' il modo normale, la libera sta in una riga sotto. -->
+          <p class="modo" id="modoRiga">oppure <button class="lnk" id="freeBtn">una corsa libera</button></p>
         </div>
       </div>
 
@@ -490,6 +553,10 @@
   <section class="board" id="board">
     <div class="board-head">
       <h2 class="board-title"><button id="boardOpen">Classifica<span class="board-hint">tiratura · vedi tutti</span></button></h2>
+      <div class="quando" role="group" aria-label="Quale classifica">
+        <button class="quando-b" id="qSempre" aria-pressed="true">di sempre</button>
+        <button class="quando-b" id="qOggi" aria-pressed="false">di oggi</button>
+      </div>
       <span class="board-meta" id="boardMeta">—</span>
     </div>
     <ol class="board-list" id="boardList"></ol>
@@ -699,6 +766,8 @@
   const ovMeta = document.getElementById("ovMeta");
   const rivelazione = document.getElementById("rivelazione");
   const startBtn = document.getElementById("startBtn");
+  const modoRiga = document.getElementById("modoRiga");
+  const freeBtn = document.getElementById("freeBtn");
   const copyBtn = document.getElementById("copyBtn");
   const scaricaBox = document.getElementById("scarica");
   const dlBolla = document.getElementById("dlBolla");
@@ -809,14 +878,18 @@
   function adattaScheda(){
     if (!overlay || overlay.hidden) return;
     const c = document.body.classList;
-    c.remove("campo-basso"); c.remove("campo-stretto"); c.remove("campo-minimo");
+    c.remove("campo-basso"); c.remove("campo-stretto");
+    c.remove("campo-minimo"); c.remove("campo-raso");
     const stretto = function(){ return overlay.scrollHeight > overlay.clientHeight + 1; };
     if (stretto()){
       c.add("campo-basso");
       if (stretto()){
         c.add("campo-stretto");
-        // ultimo grado: resta solo quello che serve a giocare ancora
-        if (stretto()) c.add("campo-minimo");
+        if (stretto()){
+          c.add("campo-minimo");
+          // ultimo grado: resta solo quello che serve a giocare ancora
+          if (stretto()) c.add("campo-raso");
+        }
       }
     }
   }
@@ -885,17 +958,17 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
   function nuovoOstacolo(tipo){
     const x = W + 30 * S;
     if (tipo === "bancale"){
-      const piani = 1 + Math.floor(Math.random() * (zona >= 2 ? 3 : 2));
+      const piani = 1 + Math.floor(caso() * (zona >= 2 ? 3 : 2));
       const alt = [0, 34, 62, 92][piani] * S;
       return { t:"bancale", x:x, w:52 * S, h:alt, piani:piani, poggia:true };
     }
     if (tipo === "inchiostro"){
-      const largo = (80 + Math.random() * 90) * S;
-      return { t:"inchiostro", x:x, w:largo, h:11 * S, colore:CMYK[Math.floor(Math.random() * 4)],
+      const largo = (80 + caso() * 90) * S;
+      return { t:"inchiostro", x:x, w:largo, h:11 * S, colore:CMYK[Math.floor(caso() * 4)],
                poggia:false };
     }
     if (tipo === "bobina"){
-      const r = (24 + Math.random() * 8) * S;
+      const r = (24 + caso() * 8) * S;
       return { t:"bobina", x:x, w:r * 2, h:r * 2, r:r, giro:0, extra:0.13 * S, poggia:false };
     }
     // taglierina: scende dall'alto e lascia libero solo il passaggio basso
@@ -907,7 +980,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
     let tot = 0;
     for (const p of pesi) tot += p[1];
     for (let giro = 0; giro < 8; giro++){
-      let r = Math.random() * tot, scelto = "bancale";
+      let r = caso() * tot, scelto = "bancale";
       for (const p of pesi){ r -= p[1]; if (r <= 0){ scelto = p[0]; break; } }
       // due taglierine di fila, o una taglierina dopo una bobina, non si passano
       if (scelto === "taglierina" && (ultimoTipo === "taglierina" || ultimoTipo === "bobina")) continue;
@@ -918,46 +991,94 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
   function intervalloOstacoli(){
     // in tempo, non in pixel: così accelerando la distanza resta saltabile
     const base = Math.max(760, 1250 - (zona - 1) * 90);
-    return base + Math.random() * (base * 0.55);
+    return base + caso() * (base * 0.55);
   }
 
   /* ---------- quello che piove ---------- */
   function pioggiaVolantini(){
-    const n = 8 + Math.floor(Math.random() * 5);
+    const n = 8 + Math.floor(caso() * 5);
     const passo = 34 * S;
     for (let i = 0; i < n; i++){
       const k = i / (n - 1);
       raccolte.push({
         t:"volantino", x:W + 30 * S + i * passo,
         y:suolo - (56 + Math.sin(k * Math.PI) * 118) * S,
-        rot:Math.random() * 6.283, vr:(Math.random() - .5) * .006,
-        fase:Math.random() * 6.283, preso:false
+        rot:caso() * 6.283, vr:(caso() - .5) * .006,
+        fase:caso() * 6.283, preso:false
       });
     }
   }
   function gruppoBiglietti(){
-    const n = 3 + Math.floor(Math.random() * 3);
+    const n = 3 + Math.floor(caso() * 3);
     for (let i = 0; i < n; i++){
       raccolte.push({
         t:"biglietto", x:W + 30 * S + i * 46 * S,
-        y:suolo - (70 + i * 16 + Math.random() * 30) * S,
-        rot:0, vr:0.004, fase:Math.random() * 6.283, preso:false
+        y:suolo - (70 + i * 16 + caso() * 30) * S,
+        rot:0, vr:0.004, fase:caso() * 6.283, preso:false
       });
     }
   }
   function manifesto(){
-    raccolte.push({ t:"manifesto", x:W + 30 * S, y:suolo - (120 + Math.random() * 60) * S,
+    raccolte.push({ t:"manifesto", x:W + 30 * S, y:suolo - (120 + caso() * 60) * S,
                     rot:-0.2, vr:0.0015, fase:0, preso:false });
   }
   function nuovoBonus(){
-    const k = BONUS_KEYS[Math.floor(Math.random() * BONUS_KEYS.length)];
-    raccolte.push({ t:"bonus", k:k, x:W + 30 * S, y:suolo - (72 + Math.random() * 70) * S,
-                    rot:0, vr:0, fase:Math.random() * 6.283, preso:false });
+    const k = BONUS_KEYS[Math.floor(caso() * BONUS_KEYS.length)];
+    raccolte.push({ t:"bonus", k:k, x:W + 30 * S, y:suolo - (72 + caso() * 70) * S,
+                    rot:0, vr:0, fase:caso() * 6.283, preso:false });
   }
 
   /* ---------- partita ---------- */
+
+  /* ---------- la tiratura del giorno ----------
+     Il motivo per tornare domani. Ogni giorno la sequenza e' **identica per
+     tutti** fino a mezzanotte: chi gioca lo stesso giorno si confronta alla
+     pari, senza scuse sui pezzi fortunati. Baseline ce l'aveva da solo; adesso
+     ce l'hanno tutti e quattro, e la sala dice quale gioco tocca oggi.
+
+     Tutto il caso del gioco passa da `caso()`: nel giorno e' un generatore col
+     seme della data, nella partita libera e' `Math.random`. Basta una sola
+     funzione perche' due partite dello stesso giorno siano la stessa partita. */
+  let modo = "giorno";
+  let caso = Math.random;
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function apparecchiaCaso(){
+    caso = modo === "giorno" ? mulberry32(dateKey()) : Math.random;
+  }
+
+
+  /* Le due strade, scritte in chiaro: il pulsante grande e' il giorno, la riga
+     sotto e' l'altra. A fine partita diventano «un'altra» e «oppure». */
+  const NOME_GIORNO = "La commessa del giorno";
+  const NOME_LIBERA = "una corsa libera";
+  const ANCORA_GIORNO = "Un'altra commessa del giorno";
+  const ANCORA_LIBERA = "Un'altra consegna";
+  function etichetteModo(finita){
+    if (!modoRiga) return;
+    modoRiga.hidden = false;
+    if (modo === "giorno"){
+      startBtn.textContent = finita ? ANCORA_GIORNO : NOME_GIORNO;
+      freeBtn.textContent = NOME_LIBERA;
+    } else {
+      startBtn.textContent = finita ? ANCORA_LIBERA : NOME_LIBERA.charAt(0).toUpperCase() + NOME_LIBERA.slice(1);
+      freeBtn.textContent = NOME_GIORNO.charAt(0).toLowerCase() + NOME_GIORNO.slice(1);
+    }
+  }
+  if (freeBtn) freeBtn.addEventListener("click", function(){
+    modo = modo === "giorno" ? "libera" : "giorno";
+    etichetteModo(false);
+    startBtn.click();
+  });
+
   function comincia(){
-    if (!chiediNome()) return;
+    chiediNome();   // non blocca: si gioca subito, si firma alla fine
     inviato = false;
     startName.hidden = true;
     signup.hidden = true; signupEdit.hidden = true; changeName.hidden = true;
@@ -977,6 +1098,9 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
     ultimoTipo = ""; toast = null; scossa = 0; lampo = 0; causaFine = "";
     commesseEvase = []; commessa = nuovaCommessa(0);
     rotativa = null; sigilli = 0; sigilloVivo = null;
+    apparecchiaCaso();
+    if (modoRiga) modoRiga.hidden = true;
+    accendiGuida();
     fase = "play";
     overlay.hidden = true;
     aggiornaHud();
@@ -999,7 +1123,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
   ];
   function nuovaCommessa(n){
     const c = COMMESSE[Math.min(COMMESSE.length - 1, n)];
-    return { numero: 1200 + Math.floor(Math.random() * 800), indice: n,
+    return { numero: 1200 + Math.floor(caso() * 800), indice: n,
              metri: c.metri, volantini: c.volantini,
              daMetri: metri, daVolantini: volantini };
   }
@@ -1051,6 +1175,87 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
     aggiornaHud();
   }
 
+
+  /* ---------- i comandi che si insegnano da soli ----------
+     Nessuno legge le regole. Alla prima partita i comandi stanno **in campo**,
+     come segni sbiaditi, e ognuno se ne va da solo appena lo usi: chi sa gia'
+     giocare non li vede quasi, chi non sa impara senza che gli venga spiegato
+     niente. Alla seconda partita non compaiono piu'.
+
+     L'opacita' si calcola dall'orologio vero e non da `dt`: e' presentazione,
+     non gioco, e cosi' non va plumbata dentro ogni ciclo. */
+  const CHIAVE_GUIDA = "agf.guida.tiratura";
+  const GUIDA_DURATA = 11000;   // quanto restano se non li usi
+  const GUIDA_TASTI = [
+    { k: "salta", segno: "SPAZIO", testo: "SALTA" },
+    { k: "salta", segno: "DUE VOLTE", testo: "SECONDA PASSATA" },
+    { k: "scivola", segno: "\u2193", testo: "SCIVOLA" }
+  ];
+  const GUIDA_TOCCO = [
+    { k: "salta", segno: "TOCCA", testo: "SALTA" },
+    { k: "salta", segno: "DUE VOLTE", testo: "SECONDA PASSATA" },
+    { k: "scivola", segno: "SCORRI GI\u00d9", testo: "SCIVOLA" }
+  ];
+  let guida = null;
+
+  function guidaGiaVista(){
+    try { return localStorage.getItem(CHIAVE_GUIDA) === "1"; } catch(e){ return true; }
+  }
+  function chiudiGuida(){
+    guida = null;
+    try { localStorage.setItem(CHIAVE_GUIDA, "1"); } catch(e){}
+  }
+  function accendiGuida(){
+    if (guidaGiaVista()){ guida = null; return; }
+    const tocco = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    guida = { da: performance.now(),
+              voci: (tocco ? GUIDA_TOCCO : GUIDA_TASTI).map(function(v){
+                return { k: v.k, segno: v.segno, testo: v.testo, usata: 0 };
+              }) };
+  }
+  function guidaFatta(k){
+    if (!guida) return;
+    for (const v of guida.voci) if (v.k === k && !v.usata) v.usata = performance.now();
+  }
+  function alfaGuida(v, ora){
+    if (v.usata) return Math.max(0, 1 - (ora - v.usata) / 420);
+    const vita = ora - guida.da;
+    if (vita < 300) return vita / 300;
+    if (vita > GUIDA_DURATA) return Math.max(0, 1 - (vita - GUIDA_DURATA) / 900);
+    return 1;
+  }
+  function disegnaGuida(c, cx, cy){
+    if (!guida) return;
+    const ora = performance.now();
+    let vive = 0;
+    c.save();
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    const px = Math.max(9, Math.round(13 * S));
+    c.font = '600 ' + px + 'px "IBM Plex Mono", ui-monospace, monospace';
+    /* impaginati come la tabellina dei comandi: il tasto a destra della gola,
+       il nome dell'azione a sinistra. Centrati, si leggerebbero a bandiera. */
+    const gola = Math.round(px * .9);
+    for (let i = 0; i < guida.voci.length; i++){
+      const v = guida.voci[i];
+      const a = alfaGuida(v, ora);
+      if (a <= 0.02) continue;
+      vive++;
+      const y = cy + i * (px * 2.0);
+      c.globalAlpha = a * .42;
+      c.fillStyle = "#EDEAE3";
+      c.textAlign = "right";
+      c.fillText(v.segno, cx - gola, y);
+      c.globalAlpha = a * .62;
+      c.textAlign = "left";
+      c.fillText(v.testo, cx + gola, y);
+    }
+    c.restore();
+    /* Non si chiude nel primo istante: appena accesa l'opacita' parte da zero,
+       e senza questa guardia la guida si spegneva da sola al primo fotogramma. */
+    if (!vive && ora - guida.da > 400) chiudiGuida();
+  }
+
   function salta(){
     if (fase !== "play") return;
     if (salti >= 2) return;
@@ -1059,6 +1264,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
     vy = -VSALTO * S * (salti === 0 ? 1 : 0.86);
     aTerra = false;
     salti++;
+    guidaFatta("salta");
     suonoSalto(salti);
   }
   function scivola(){
@@ -1069,6 +1275,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
       return;
     }
     scivolaFino = tempo + SCIVOLATA;
+    guidaFatta("scivola");
     suonoScivolata();
   }
 
@@ -1088,8 +1295,8 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
     // i fogli che ti scappano di mano: si vedono partire
     for (let i = 0; i < 7; i++)
       briciole.push({ x: garzoneX() + 12 * S, y: py - 28 * S,
-                      vx: (0.05 + Math.random() * 0.16) * S, vy: -(0.12 + Math.random() * 0.2) * S,
-                      rot: Math.random() * 6.28, vr: (Math.random() - .5) * .5,
+                      vx: (0.05 + caso() * 0.16) * S, vy: -(0.12 + caso() * 0.2) * S,
+                      rot: caso() * 6.28, vr: (caso() - .5) * .5,
                       vita: 1, r: 6 * S, colore: CARTA });
     if (rotativa) rotativa.x += 60 * S;
     invulnFino = ora + INVULN;
@@ -1200,14 +1407,14 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
     }
     prossimaPioggia -= dt;
     if (prossimaPioggia <= 0){
-      const r = Math.random();
+      const r = caso();
       if (r < 0.18) manifesto();
       else if (r < 0.52) gruppoBiglietti();
       else pioggiaVolantini();
-      prossimaPioggia = 3200 + Math.random() * 3400;
+      prossimaPioggia = 3200 + caso() * 3400;
     }
     prossimoBonus -= dt;
-    if (prossimoBonus <= 0){ nuovoBonus(); prossimoBonus = 16000 + Math.random() * 12000; }
+    if (prossimoBonus <= 0){ nuovoBonus(); prossimoBonus = 16000 + caso() * 12000; }
 
     // ostacoli
     const gx = garzoneX(), gh = altezzaGarzone();
@@ -1357,6 +1564,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
       document.getElementById("altroGioco").hidden = true;
       giveUpBtn.hidden = false;
       startBtn.textContent = "Riprendi";
+      if (modoRiga) modoRiga.hidden = true;
       overlay.hidden = false;
     } else if (fase === "pause"){
       fase = "play";
@@ -1405,7 +1613,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
       ", raccogliendo <b>" + biglietti + "</b> " +
       (biglietti === 1 ? "biglietto" : "biglietti") + " e <b>" + volantini + "</b> " +
       (volantini === 1 ? "volantino" : "volantini") + ".";
-    startBtn.textContent = "Un'altra consegna";
+    etichetteModo(true);
     copyBtn.hidden = false; copyBtn.textContent = "Copia risultato";
     if (scaricaBox) scaricaBox.hidden = false;
     giveUpBtn.hidden = true;
@@ -1440,7 +1648,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
   function mostraAltroGioco(){
     const box = document.getElementById("altroGioco");
     if (!box || !ALTRI_GIOCHI.length) return;
-    const g = ALTRI_GIOCHI[Math.floor(Math.random() * ALTRI_GIOCHI.length)];
+    const g = ALTRI_GIOCHI[Math.floor(caso() * ALTRI_GIOCHI.length)];
     box.href = g.url;
     box.innerHTML = "";
     const eti = document.createElement("span");
@@ -1466,18 +1674,18 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
   function schizza(x, y, colore, n){
     if (reduceMotion) return;
     for (let i = 0; i < n; i++){
-      const a = Math.random() * 6.283, v = (0.05 + Math.random() * 0.22) * S;
+      const a = caso() * 6.283, v = (0.05 + caso() * 0.22) * S;
       briciole.push({ x:x, y:y, vx:Math.cos(a) * v, vy:Math.sin(a) * v - .05 * S,
-                      r:(1 + Math.random() * 2.8) * S, vita:1, colore:colore,
-                      rot:Math.random() * 6.283, vr:(Math.random() - .5) * .3 });
+                      r:(1 + caso() * 2.8) * S, vita:1, colore:colore,
+                      rot:caso() * 6.283, vr:(caso() - .5) * .3 });
     }
   }
   function polvere(){
     if (reduceMotion) return;
     for (let i = 0; i < 5; i++){
-      briciole.push({ x:garzoneX() + (Math.random() - .5) * 16 * S, y:py,
-                      vx:-(0.03 + Math.random() * .06) * S, vy:-Math.random() * .04 * S,
-                      r:(1 + Math.random() * 2) * S, vita:.7, colore:"#9E998C",
+      briciole.push({ x:garzoneX() + (caso() - .5) * 16 * S, y:py,
+                      vx:-(0.03 + caso() * .06) * S, vy:-caso() * .04 * S,
+                      r:(1 + caso() * 2) * S, vita:.7, colore:"#9E998C",
                       rot:0, vr:0 });
     }
   }
@@ -2067,7 +2275,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
   function disegna(){
     ctx.save();
     if (scossa > 0 && !reduceMotion)
-      ctx.translate((Math.random() - .5) * 8 * scossa, (Math.random() - .5) * 8 * scossa);
+      ctx.translate((caso() - .5) * 8 * scossa, (caso() - .5) * 8 * scossa);
     disegnaFondale();
     disegnaPavimento();
     disegnaScia();
@@ -2077,6 +2285,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
     disegnaRotativa();
     disegnaBriciole();
     disegnaSigilloVivo();
+    disegnaGuida(ctx, W * .5, H * .30);
     disegnaToast();
     ctx.restore();
     if (lampo > 0){
@@ -2490,7 +2699,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
     if (!bufRumore){
       bufRumore = c.createBuffer(1, c.sampleRate, c.sampleRate);
       const d = bufRumore.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      for (let i = 0; i < d.length; i++) d[i] = caso() * 2 - 1;
     }
     return bufRumore;
   }
@@ -2638,15 +2847,39 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
     return li;
   }
 
+
+  /* ---------- di sempre, oppure di oggi ----------
+     Le righe che arrivano dal database portano gia' la data: la classifica del
+     giorno e' la stessa lista filtrata, non una seconda interrogazione. */
+  let vistaOggi = false;
+  let righeClassifica = [];
+  const qSempre = document.getElementById("qSempre");
+  const qOggi = document.getElementById("qOggi");
+  function cambiaVista(oggi){
+    vistaOggi = oggi;
+    if (qSempre) qSempre.setAttribute("aria-pressed", String(!oggi));
+    if (qOggi) qOggi.setAttribute("aria-pressed", String(oggi));
+    mostraClassifica(null);
+  }
+  if (qSempre) qSempre.addEventListener("click", function(){ cambiaVista(false); });
+  if (qOggi) qOggi.addEventListener("click", function(){ cambiaVista(true); });
+
   function mostraClassifica(righe){
-    const lista = megliopers(righe);
+    if (righe) righeClassifica = righe;
+    const oggi = dateKey();
+    const base = vistaOggi
+      ? righeClassifica.filter(function(r){ return Number(r.day) === oggi; })
+      : righeClassifica;
+    const lista = megliopers(base);
     for (const coppia of [[boardList, boardNote, 10], [mBoardList, mBoardNote, 500]]){
       const ul = coppia[0], nota = coppia[1], quanti = coppia[2];
       ul.innerHTML = "";
       lista.slice(0, quanti).forEach(function(r, i){ ul.appendChild(rigaClassifica(r, i)); });
       nota.textContent = lista.length
         ? (quanti === 10 && lista.length > 10 ? "Primi 10 di " + lista.length + " · clicca «Classifica» per vederli tutti" : "")
-        : "Ancora nessuno in classifica. Il primo nome che compare qui è il tuo.";
+        : (vistaOggi
+            ? "Oggi non ha ancora stampato nessuno. Il primo nome che compare qui è il tuo."
+            : "Ancora nessuno in classifica. Il primo nome che compare qui è il tuo.");
     }
     boardMeta.textContent = lista.length ? plur(lista.length, "garzone", "garzoni") : "nessuno";
   }
@@ -2673,26 +2906,42 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
   boardModal.addEventListener("click", function(e){ if (e.target === boardModal) boardModal.hidden = true; });
   window.addEventListener("keydown", function(e){ if (e.key === "Escape") boardModal.hidden = true; });
 
+  /* ---------- il nome ----------
+     Si gioca al primo tocco. Chiedere il nome **prima** era il punto in cui si
+     perdeva chi arriva da un link: dieci secondi di curiosita', e la prima cosa
+     che gli chiedi e' di scrivere qualcosa. Adesso il nome si firma alla fine,
+     sulla scheda del punteggio, quando c'e' un motivo per metterlo.
+
+     Chi ce l'ha gia' lo vede in una riga sola e puo' cambiarlo: e' un
+     riconoscimento, non una richiesta. */
+  const firmaRiga = document.getElementById("firmaRiga");
+  const firmaNome = document.getElementById("firmaNome");
+  const cambiaFirma = document.getElementById("cambiaFirma");
+
   function preparaNome(){
     const gia = nomeSalvato();
-    startName.hidden = false;
+    startName.hidden = true;
+    if (firmaRiga){
+      if (gia){ firmaNome.textContent = gia; firmaRiga.hidden = false; }
+      else firmaRiga.hidden = true;
+    }
     nameInput.value = gia;
-    nameNote.textContent = gia
-      ? "Ti riconosco dalla sala giochi. Cambialo se vuoi."
-      : "Serve per entrare in classifica. È lo stesso nome della sala giochi.";
+    nameNote.textContent = "\u00c8 lo stesso nome della sala giochi.";
     nameNote.style.color = "";
   }
+  function apriFirma(){
+    if (firmaRiga) firmaRiga.hidden = true;
+    startName.hidden = false;
+    nameInput.value = nomeSalvato();
+    nameInput.focus();
+    nameInput.select();
+  }
+  if (cambiaFirma) cambiaFirma.addEventListener("click", apriFirma);
+
+  /* Non sbarra piu' la strada: prende quello che c'e', se c'e'. */
   function chiediNome(){
     const n = pulisci(startName.hidden ? nomeSalvato() : (nameInput.value || nomeSalvato()));
-    if (!n){
-      startName.hidden = false;
-      nameNote.textContent = "Scrivi un nome per cominciare.";
-      nameNote.style.color = "var(--danger)";
-      nameInput.focus();
-      return false;
-    }
-    salvaNome(n);
-    mioNome = n;
+    if (n){ salvaNome(n); mioNome = n; }
     return true;
   }
 
@@ -2702,7 +2951,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
     if (!nome){
       signup.hidden = false;
       signupEdit.hidden = false;
-      signupMsg.textContent = "Metti il tuo nome per entrare in classifica";
+      signupMsg.textContent = "Firma il punteggio ed entri in classifica";
       return;
     }
     signup.hidden = false;
@@ -2792,6 +3041,7 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
   anteprima();
   aggiornaHud();
   preparaNome();
+  etichetteModo(false);
   resize();
   anteprima();
   disegna();
@@ -2799,6 +3049,10 @@ const MARK_PATHS = ["M 105 22 C 106 24 107 26 107 28 C 107 29 106 31 106 32 L 10
 
   /* API per le prove automatiche */
   window.__tiratura = {
+    impronta: function(){ return ostacoli.map(function(o){ return o.t + Math.round(o.x); }).join(","); },
+    // il collaudo della guida: c'e'? e si spegne?
+    guida: function(){ return guida; },
+    spegniGuida: chiudiGuida,
     stato: function(){
       return { fase:fase, punti:Math.round(punti), metri:Math.floor(metri), zona:zona,
                bozze:bozze, urti:urti, volantini:volantini, biglietti:biglietti,
