@@ -220,9 +220,12 @@ const ok = (nome, cond, extra) => {
     piede: Array.from(document.querySelectorAll('.colofoot a.tool')).map(a => a.getAttribute('href')),
     scheda: document.getElementById('altroGioco').getAttribute('href')
   }));
-  ok('15. il ponte', t15.sala === 'https://francesco-agf.github.io/' && t15.piede.length === 4 &&
+  /* Cinque, non quattro: dal 31.08 nel piede c'e' anche la pagina privacy,
+     che il brief chiede come unico link di servizio oltre alla sala. */
+  ok('15. il ponte', t15.sala === 'https://francesco-agf.github.io/' && t15.piede.length === 5 &&
       /baseline/.test(t15.piede.join()) && /refusi/.test(t15.piede.join()) &&
-      /leporello/.test(t15.piede.join()) && /baseline|refusi|leporello/.test(t15.scheda || ''), t15);
+      /leporello/.test(t15.piede.join()) && /privacy/.test(t15.piede.join()) &&
+      /baseline|refusi|leporello/.test(t15.scheda || ''), t15);
 
   // 16. niente selezione del testo
   const t16 = await page.evaluate(() => {
