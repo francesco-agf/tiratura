@@ -1,0 +1,37 @@
+{
+  "id": "/tiratura/",
+  "name": "Tiratura — la corsa del ragazzo di bottega",
+  "short_name": "Tiratura",
+  "description": "Il garzone attraversa di corsa tutta la tipografia con le bozze sotto il braccio.",
+  "lang": "it",
+  "dir": "ltr",
+  "start_url": "/tiratura/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080B0F",
+  "theme_color": "#080B0F",
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "icons": [
+    {
+      "src": "/tiratura/icona-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/tiratura/icona-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/tiratura/icona-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
