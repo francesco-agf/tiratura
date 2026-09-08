@@ -17,17 +17,17 @@ Va letto prima di cominciare — qui ci sono solo dieci righe di promemoria.
 | `AGF-tiratura.md` | **questo gioco**: fisica, ostacoli, commessa, rotativa, bolla |
 | `AGF-sala.md` | classifiche, database, ponte fra i giochi, privacy |
 
-## Le cinque cose da non sbagliare
+## Le quattro cose da non sbagliare
 
-1. **Il sorgente si monta da tre pezzi:** `sorgente/_tir_css.html` +
-   `sorgente/_tir_html.html` + `sorgente/_tir_js.html`. Una modifica fatta solo sul file
-   assemblato si perde al montaggio dopo.
-2. **`index.html` è generato.** Dopo il montaggio, `python3 sorgente/build.py`. Le prove
-   girano su `index.html`: senza il montaggio si prova la versione vecchia.
-3. **I cronometri vanno sul tempo di gioco**, non su `performance.now()`: `tempo` cresce
+1. **`index.html` è generato.** Si modifica `sorgente/tiratura.html`, poi
+   `python3 sorgente/build.py`. Le prove girano su `index.html`: senza il montaggio si
+   prova la versione vecchia. È la trappola numero uno.
+   *(Storicamente il sorgente si montava da `_tir_css.html` + `_tir_html.html` +
+   `_tir_js.html`: quei pezzi non sono più nel repository.)*
+2. **I cronometri vanno sul tempo di gioco**, non su `performance.now()`: `tempo` cresce
    solo dentro `aggiorna(dt)`. Unica eccezione, `fineA`.
-4. **Si scrive in italiano.** Funzioni, variabili, commenti, messaggi.
-5. **Supabase non si tocca** e **Aruba è in stand-by**.
+3. **Si scrive in italiano.** Funzioni, variabili, commenti, messaggi.
+4. **Supabase non si tocca** e **Aruba è in stand-by**.
 
 ## Le prove
 
